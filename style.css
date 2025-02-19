@@ -1,0 +1,6 @@
+#chatbot-container {
+    width: 300px;
+    border: 2px solid #ccc;
+    padding: 10px;
+    font-family: Arial, sans-serif;
+}

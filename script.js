@@ -66,31 +66,70 @@ const responses = {
 };
 
 
-function addMessage(text, sender) {
-    const chatBody = document.getElementById("chat-body");
-    const messageDiv = document.createElement("div");
-    messageDiv.innerText = text;
-    chatBody.appendChild(messageDiv);
+// Function to calculate Levenshtein Distance (edit distance)
+function levenshteinDistance(s1, s2) {
+    const len1 = s1.length, len2 = s2.length;
+    let dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+
+    for (let i = 0; i <= len1; i++) dp[i][0] = i;
+    for (let j = 0; j <= len2; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+            const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1, // Deletion
+                dp[i][j - 1] + 1, // Insertion
+                dp[i - 1][j - 1] + cost // Substitution
+            );
+        }
+    }
+    return dp[len1][len2];
 }
 
+// Function to find the best match using fuzzy search
+function getBestMatch(userInput) {
+    let bestMatch = "default";
+    let lowestDistance = Infinity;
+    
+    for (const key in responses) {
+        let distance = levenshteinDistance(userInput, key);
+        if (distance < lowestDistance) {
+            lowestDistance = distance;
+            bestMatch = key;
+        }
+    }
+
+    // If the match is close (threshold 5), return it, otherwise default response
+    return lowestDistance <= 5 ? responses[bestMatch] : responses["default"];
+}
+
+// Function to handle user input
 function handleUserInput() {
     const inputField = document.getElementById("chat-input");
     const userText = inputField.value.trim().toLowerCase();
     if (userText === "") return;
+
     addMessage("You: " + userText, "user");
 
-    let botResponse = responses["default"];
-    for (const key in responses) {
-        if (userText.includes(key)) {
-            botResponse = responses[key];
-            break;
-        }
-    }
+    // Find best match using fuzzy search
+    let botResponse = getBestMatch(userText);
 
     setTimeout(() => addMessage("Bot: " + botResponse, "bot"), 1000);
     inputField.value = "";
 }
 
+// Function to add messages to the chat window
+function addMessage(text, sender) {
+    const chatBody = document.getElementById("chat-body");
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("chat-message", sender === "user" ? "user-message" : "bot-message");
+    messageDiv.innerText = text;
+    chatBody.appendChild(messageDiv);
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Function to handle Enter key press
 function handleKeyPress(event) {
     if (event.key === "Enter") {
         handleUserInput();
